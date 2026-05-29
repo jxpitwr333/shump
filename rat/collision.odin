@@ -3,13 +3,16 @@ package rat
 import "core:math"
 import "vendor:raylib"
 
-CELL_SIZE :: 32
-GRID_WIDTH :: 16
-GRID_HEIGHT :: 16
+DEFAULT_CELL_SIZE :: 32
 
+// The broadphase grid is sized at world creation to cover the game's world
+// dimensions, so cells aren't wasted on empty space (see create_world).
 SpatialGrid :: struct {
-	cells:        [GRID_WIDTH][GRID_HEIGHT][dynamic]Id,
-	active_cells: [dynamic][2]u32,
+	cells:        [][dynamic]Id, // flat grid_w * grid_h
+	grid_w:       int,
+	grid_h:       int,
+	cell_size:    f32,
+	active_cells: [dynamic]int, // flat indices of cells touched this frame
 	// per-entity-slot stamp for O(1) dedup during a range query (see
 	// get_entities_in_range). A slot was already collected this query iff
 	// seen[slot] == seen_tick; bumping the tick invalidates all stamps at once.
@@ -17,27 +20,34 @@ SpatialGrid :: struct {
 	seen_tick:    u32,
 }
 
-create_spatial_grid :: proc() -> SpatialGrid {
+// world_w/world_h are the game's world size; cell_size tunes granularity
+// (smaller = more, finer cells = fewer entities per cell). max_entities sizes
+// the dedup stamp array.
+create_spatial_grid :: proc(world_w, world_h, cell_size: f32, max_entities: u32) -> SpatialGrid {
 	grid: SpatialGrid
-	grid.active_cells = make([dynamic][2]u32, 0, 64)
-	grid.seen = make([]u32, MAX_ENTITIES) // zero-filled; first tick is 1
+	grid.cell_size = cell_size
+	grid.grid_w = max(1, int(math.ceil(world_w / cell_size)))
+	grid.grid_h = max(1, int(math.ceil(world_h / cell_size)))
 
-	for x in 0 ..< GRID_WIDTH {
-		for y in 0 ..< GRID_HEIGHT {
-			grid.cells[x][y] = make([dynamic]u32, 0, 8)
-		}
+	grid.cells = make([][dynamic]Id, grid.grid_w * grid.grid_h)
+	for i in 0 ..< len(grid.cells) {
+		grid.cells[i] = make([dynamic]Id, 0, 8)
 	}
+	grid.active_cells = make([dynamic]int, 0, 64)
+	grid.seen = make([]u32, max_entities) // zero-filled; first tick is 1
 	return grid
 }
 
 delete_spatial_grid :: proc(grid: ^SpatialGrid) {
-	for x in 0 ..< GRID_WIDTH {
-		for y in 0 ..< GRID_HEIGHT {
-			delete(grid.cells[x][y])
-		}
-	}
+	for i in 0 ..< len(grid.cells) do delete(grid.cells[i])
+	delete(grid.cells)
 	delete(grid.active_cells)
 	delete(grid.seen)
+}
+
+@(private = "file")
+cell_at :: #force_inline proc(grid: ^SpatialGrid, gx, gy: int) -> int {
+	return gy * grid.grid_w + gx
 }
 
 // -----------------------------------------------------------------------------
@@ -177,25 +187,25 @@ poly_overlap :: proc(a, b: ^Poly) -> bool {
 
 @(private = "file")
 grid_insert :: proc(world: ^World, eid: Id, mn, mx: raylib.Vector2) {
-	x_start := clamp(int(mn.x) / CELL_SIZE, 0, GRID_WIDTH - 1)
-	y_start := clamp(int(mn.y) / CELL_SIZE, 0, GRID_HEIGHT - 1)
-	x_end := clamp(int(mx.x) / CELL_SIZE, 0, GRID_WIDTH - 1)
-	y_end := clamp(int(mx.y) / CELL_SIZE, 0, GRID_HEIGHT - 1)
+	g := &world.grid
+	x_start := clamp(int(mn.x / g.cell_size), 0, g.grid_w - 1)
+	y_start := clamp(int(mn.y / g.cell_size), 0, g.grid_h - 1)
+	x_end := clamp(int(mx.x / g.cell_size), 0, g.grid_w - 1)
+	y_end := clamp(int(mx.y / g.cell_size), 0, g.grid_h - 1)
 
-	for gx in x_start ..= x_end {
-		for gy in y_start ..= y_end {
-			if len(world.grid.cells[gx][gy]) == 0 {
-				append(&world.grid.active_cells, [2]u32{u32(gx), u32(gy)})
-			}
-			append(&world.grid.cells[gx][gy], eid)
+	for gy in y_start ..= y_end {
+		for gx in x_start ..= x_end {
+			ci := cell_at(g, gx, gy)
+			if len(g.cells[ci]) == 0 do append(&g.active_cells, ci)
+			append(&g.cells[ci], eid)
 		}
 	}
 }
 
 update_grid :: proc(world: ^World) {
 	// clear only used cells
-	for coord in world.grid.active_cells {
-		clear(&world.grid.cells[coord[0]][coord[1]])
+	for ci in world.grid.active_cells {
+		clear(&world.grid.cells[ci])
 	}
 	clear(&world.grid.active_cells)
 
@@ -223,23 +233,24 @@ update_grid :: proc(world: ^World) {
 }
 
 get_entities_in_range :: proc(world: ^World, x, y, w, h: f32) -> [dynamic]Id {
+	g := &world.grid
 	ids := make([dynamic]Id, context.temp_allocator)
 
 	// bump the stamp so every slot is implicitly "unseen" for this query
-	world.grid.seen_tick += 1
-	tick := world.grid.seen_tick
+	g.seen_tick += 1
+	tick := g.seen_tick
 
-	x1 := clamp(int(x) / CELL_SIZE, 0, GRID_WIDTH - 1)
-	y1 := clamp(int(y) / CELL_SIZE, 0, GRID_HEIGHT - 1)
-	x2 := clamp(int(x + w) / CELL_SIZE, 0, GRID_WIDTH - 1)
-	y2 := clamp(int(y + h) / CELL_SIZE, 0, GRID_HEIGHT - 1)
+	x1 := clamp(int(x / g.cell_size), 0, g.grid_w - 1)
+	y1 := clamp(int(y / g.cell_size), 0, g.grid_h - 1)
+	x2 := clamp(int((x + w) / g.cell_size), 0, g.grid_w - 1)
+	y2 := clamp(int((y + h) / g.cell_size), 0, g.grid_h - 1)
 
-	for gx in x1 ..= x2 {
-		for gy in y1 ..= y2 {
-			for eid in world.grid.cells[gx][gy] {
+	for gy in y1 ..= y2 {
+		for gx in x1 ..= x2 {
+			for eid in g.cells[cell_at(g, gx, gy)] {
 				slot := get_idx(eid)
-				if world.grid.seen[slot] == tick do continue // already collected
-				world.grid.seen[slot] = tick
+				if g.seen[slot] == tick do continue // already collected
+				g.seen[slot] = tick
 				append(&ids, eid)
 			}
 		}
@@ -294,6 +305,66 @@ place_meeting :: proc(world: ^World, id: Id, next_x, next_y: f32) -> bool {
 	}
 
 	return false
+}
+
+// -----------------------------------------------------------------------------
+// Collision events (GameMaker-style)
+//
+// Register a handler for an ordered layer pair; it fires once per overlapping
+// pair, per registered perspective, with `self` = the entity on the first layer.
+// Handlers speak only (world, self, other) — recover your own typed data inside
+// via the component registry or by casting world.user_data to your game state.
+//
+// IMPORTANT: handlers must NOT mutate component sets inline. Queue changes
+// (queue_destroy / queue_remove); they are applied at the next update_world.
+//
+// For dispatch, treat an entity's collider `layer` as a single category bit
+// (an exact u32 match against the registered key).
+// -----------------------------------------------------------------------------
+
+CollisionHandler :: proc(world: ^World, self: Id, other: Id)
+
+// Registers (or replaces) the handler fired when a `self_layer` collider
+// overlaps an `other_layer` collider. Register the reverse pair too if both
+// sides should react.
+on_collision :: proc(world: ^World, self_layer, other_layer: u32, handler: CollisionHandler) {
+	world.collision_handlers[{self_layer, other_layer}] = handler
+}
+
+// Fires registered handlers for every overlapping collider pair. Called once
+// per frame by update_world; a no-op when no handlers are registered.
+process_collisions :: proc(world: ^World) {
+	if len(world.collision_handlers) == 0 do return
+
+	for i in 0 ..< world.colliders_aabb.count do collide_entity(world, world.colliders_aabb.dense[i])
+	for i in 0 ..< world.colliders_ellipse.count do collide_entity(world, world.colliders_ellipse.dense[i])
+}
+
+@(private = "file")
+collide_entity :: proc(world: ^World, a: Id) {
+	a_poly, ok := collider_poly(world, a)
+	if !ok do return
+	a_layer, _ := collider_filter(world, a)
+
+	mn, mx := poly_bounds(&a_poly)
+	nearby := get_entities_in_range(world, mn.x, mn.y, mx.x - mn.x, mx.y - mn.y)
+
+	for b in nearby {
+		// each unordered pair is handled once, by the lower-id entity
+		if a >= b do continue
+
+		b_layer, _ := collider_filter(world, b)
+		h_ab := world.collision_handlers[{a_layer, b_layer}]
+		h_ba := world.collision_handlers[{b_layer, a_layer}]
+		if h_ab == nil && h_ba == nil do continue // neither side cares → skip SAT
+
+		b_poly, bok := collider_poly(world, b)
+		if !bok do continue
+		if !poly_overlap(&a_poly, &b_poly) do continue
+
+		if h_ab != nil do h_ab(world, a, b)
+		if h_ba != nil do h_ba(world, b, a)
+	}
 }
 
 @(private = "file")

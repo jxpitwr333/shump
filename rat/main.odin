@@ -4,7 +4,7 @@ import "vendor:raylib"
 
 main :: proc() {
 	// init
-	world := create_world()
+	world := create_world(512, 512)
 
 	if (load_sprite_manifest(&world.sprite_lib, "assets/sprites.json")) {
 		fmt.println("Loaded sprite metadata.")

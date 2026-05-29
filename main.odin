@@ -21,8 +21,12 @@ State :: struct {
 // init
 main :: proc() {
 	state: State
-	state.world = rat.create_world()
+	state.world = rat.create_world(GAME_WIDTH, GAME_HEIGHT) // grid sized to the world
 	state.game = create_game(&state.world) // registers game component sets on the world
+
+	// let collision handlers reach game-wide state via world.user_data
+	state.world.user_data = &state
+	rat.on_collision(&state.world, LAYER_BULLET, LAYER_ENEMY, on_bullet_hits_enemy)
 
 	rat.load_sprite_manifest(&state.world.sprite_lib, "assets/sprites/sprites.json")
 
@@ -54,7 +58,7 @@ main :: proc() {
 				type = .Sprite,
 				vflip = 1,
 			},
-			rat.Box{width = 8, height = 8},
+			rat.Box{width = 8, height = 8, layer = LAYER_PLAYER, mask = LAYER_ENEMY},
 		),
 		can_shoot = true,
 	}

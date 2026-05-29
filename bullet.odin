@@ -28,9 +28,41 @@ set_frame :: proc(world: ^rat.World, t: ^rat.Timer) {
 	}
 }
 
+// Example collision handler, registered in main for (LAYER_BULLET, LAYER_ENEMY).
+// Fires once per bullet↔enemy overlap with self=bullet, other=enemy. (Dormant
+// until enemy entities exist.) To reach game-wide state inside a handler:
+//   state := (^State)(world.user_data)
+on_bullet_hits_enemy :: proc(world: ^rat.World, self, other: rat.Id) {
+	if t, ok := rat.try_fetch(world, self, rat.transform_t); ok {
+		rat.create_radial_particle_explosion(
+			&world.particles,
+			rat.ParticleDto {
+				pos = t.position,
+				color = raylib.YELLOW,
+				lifetime = 12,
+				scale = {1.5, 1.5},
+				shape = .CIRCLE,
+				shrink = true,
+				shrink_factor = 0.12,
+			},
+			8,
+			true,
+		)
+	}
+
+	// queue (don't mutate inline): both are gone at the next update_world flush
+	rat.queue_destroy(world, self) // the bullet
+	rat.queue_destroy(world, other) // the enemy
+}
+
 create_projectile :: proc(state: ^State, template: ProjectileDto) {
 	sprite_name: string = ""
-	bbox: rat.ColliderShape = rat.Box{width = 8, height = 8}
+	bbox: rat.ColliderShape = rat.Box {
+		width  = 8,
+		height = 8,
+		layer  = LAYER_BULLET,
+		mask   = LAYER_ENEMY,
+	}
 
 	switch (template.type) {
 	case .BULLET:

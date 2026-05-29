@@ -29,7 +29,7 @@ import "rat"
 import rl "vendor:raylib"
 
 main :: proc() {
-	world := rat.create_world()
+	world := rat.create_world(128, 128)   // world size; the collision grid is sized to match
 	defer rl.CloseWindow()
 	defer rat.delete_world(&world)   // declared after CloseWindow → runs before it
 
@@ -199,6 +199,29 @@ LAYER_BULLET :: u32(1 << 2)
 // a player bullet: it IS a bullet, it collides only with enemies
 rat.Box{width = 8, height = 8, layer = LAYER_BULLET, mask = LAYER_ENEMY}
 ```
+
+### Collision events
+
+For reactive gameplay ("when a bullet hits an enemy, do X") register a handler per **ordered layer pair**. It fires once per overlapping pair, with `self` = the entity on the first layer:
+
+```odin
+state.world.user_data = &state                  // opaque pointer handlers can recover
+rat.on_collision(&world, LAYER_BULLET, LAYER_ENEMY, on_bullet_hits_enemy)
+
+on_bullet_hits_enemy :: proc(world: ^rat.World, self, other: rat.Id) {
+	// reach game-wide state generically — the engine never names your types:
+	state := (^State)(world.user_data)
+	rat.queue_destroy(world, self)    // the bullet
+	rat.queue_destroy(world, other)   // the enemy
+}
+```
+
+`process_collisions` runs inside `update_world` (skipped entirely if no handlers are registered). Two rules:
+
+- **Handlers must not mutate sets inline** — queue changes (`queue_destroy` / `queue_remove`); they apply at the next `update_world`.
+- For event dispatch, treat each collider's `layer` as a **single category bit** (the key is matched exactly). Register the reverse pair too if both sides should react.
+
+The engine only ever speaks `(world, self, other)` and a `rawptr` — it stays ignorant of your game structs, which you recover inside the handler via `user_data` or the component registry.
 
 `rat.debug_draw_collisions(&world)` (call inside the render pass) outlines every collider exactly as the SAT test sees it.
 

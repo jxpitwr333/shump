@@ -16,9 +16,13 @@ World :: struct {
 	particles:       [dynamic]Particle,
 	destroy_queue:   [dynamic]Id, // entities queued via queue_destroy, flushed in update_world
 	components:      map[typeid]ComponentStore, // user component sets registered via register_component
+	collision_handlers: map[[2]u32]CollisionHandler, // {self_layer, other_layer} -> handler
+	user_data:       rawptr, // opaque game-side pointer (e.g. ^State) for collision handlers
 }
 
-create_world :: proc() -> World {
+// world_width/world_height are the game's world dimensions; the broadphase grid
+// is sized to cover exactly that area. cell_size tunes grid granularity.
+create_world :: proc(world_width, world_height: f32, cell_size: f32 = DEFAULT_CELL_SIZE) -> World {
 	return World {
 		entity_manager = create_entity_manager(),
 		transforms = create_sparse_set(transform_t, MAX_ENTITIES),
@@ -26,7 +30,7 @@ create_world :: proc() -> World {
 		colliders_aabb = create_sparse_set(Box, MAX_ENTITIES),
 		colliders_ellipse = create_sparse_set(Ellipse, MAX_ENTITIES),
 		sprite_lib = init_sprite_lib(),
-		grid = create_spatial_grid(),
+		grid = create_spatial_grid(world_width, world_height, cell_size, MAX_ENTITIES),
 		primitives_rect = create_sparse_set(rectangle_t, MAX_ENTITIES),
 		primitives_circ = create_sparse_set(Circle, MAX_ENTITIES),
 		sprite_data = create_sparse_set(SpriteData, MAX_ENTITIES),
@@ -34,6 +38,7 @@ create_world :: proc() -> World {
 		particles = make([dynamic]Particle, 0, 64),
 		destroy_queue = make([dynamic]Id, 0, 32),
 		components = make(map[typeid]ComponentStore),
+		collision_handlers = make(map[[2]u32]CollisionHandler),
 	}
 }
 
@@ -136,6 +141,7 @@ update_world :: proc(world: ^World) {
 	flush_destroys(world)
 	update_timers(world)
 	update_grid(world)
+	process_collisions(world) // fires registered collision handlers
 	update_particles(&world.particles)
 }
 
@@ -163,4 +169,5 @@ delete_world :: proc(world: ^World) {
 		store.destroy(store.set)
 	}
 	delete(world.components)
+	delete(world.collision_handlers)
 }
