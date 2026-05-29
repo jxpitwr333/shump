@@ -37,9 +37,10 @@ render_primitive_rects :: proc(world: ^World) {
 	for i in 0 ..< world.primitives_rect.count {
 		eid := world.primitives_rect.dense[i]
 
-		rect, _ := get(&world.primitives_rect, eid)
-		transform, _ := get(&world.transforms, eid)
-		appearance, _ := get(&world.appearances, eid)
+		rect := &world.primitives_rect.data[i]
+		transform, tok := get(&world.transforms, eid)
+		appearance, aok := get(&world.appearances, eid)
+		if !tok || !aok do continue
 
 		raylib.DrawRectanglePro(
 			raylib.Rectangle(
@@ -60,10 +61,12 @@ render_primitive_rects :: proc(world: ^World) {
 render_primitive_circs :: proc(world: ^World) {
 	for i in 0 ..< world.primitives_circ.count {
 		eid := world.primitives_circ.dense[i]
-		circle, _ := get(&world.primitives_circ, eid)
 
-		transform, _ := get(&world.transforms, eid)
-		appearance, _ := get(&world.appearances, eid)
+		circle := &world.primitives_circ.data[i]
+		transform, tok := get(&world.transforms, eid)
+		appearance, aok := get(&world.appearances, eid)
+		if !tok || !aok do continue
+
 		raylib.DrawCircleV(
 			vec2_add(transform.position, appearance.offset),
 			circle.radius,

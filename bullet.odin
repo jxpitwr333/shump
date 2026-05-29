@@ -20,7 +20,7 @@ ProjectileDto :: struct {
 	speed:    f32,
 }
 
-SetFrame :: proc(world: ^rat.World, t: ^rat.Timer) {
+set_frame :: proc(world: ^rat.World, t: ^rat.Timer) {
 	sprite_data, ok := rat.get(&world.sprite_data, t.entity)
 	if ok {
 		sprite_data.image_index = 1
@@ -44,7 +44,7 @@ create_projectile :: proc(state: ^State, template: ProjectileDto) {
 		vflip       = 1,
 		image_index = 0,
 		image_speed = 1,
-		offset      = {-4, -4}, /*hardcoded*/
+		align       = .CENTER,
 		sprite_name = sprite_name,
 	}
 
@@ -65,7 +65,7 @@ create_projectile :: proc(state: ^State, template: ProjectileDto) {
 		Projectile {
 			id = id,
 			type = template.type,
-			velocity = rat.FromPolarDeg(template.speed, template.angle),
+			velocity = rat.from_polar_deg(template.speed, template.angle),
 		},
 	)
 }

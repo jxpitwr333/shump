@@ -37,11 +37,11 @@ ParticleDto :: struct {
 	color_palette:     ^[]rl.Color,
 }
 
-CreateParticleDeg :: proc(particle_array: ^[dynamic]Particle, template: ParticleDto) {
+create_particle_deg :: proc(particle_array: ^[dynamic]Particle, template: ParticleDto) {
 	particle := Particle {
 		pos               = template.pos,
 		scale             = template.scale,
-		velocity          = FromPolarDeg(template.speed, template.angle),
+		velocity          = from_polar_deg(template.speed, template.angle),
 		color             = template.color,
 		lifetime          = template.lifetime,
 		starting_lifetime = template.lifetime,
@@ -54,11 +54,11 @@ CreateParticleDeg :: proc(particle_array: ^[dynamic]Particle, template: Particle
 	append(particle_array, particle)
 }
 
-CreateParticleRad :: proc(particle_array: ^[dynamic]Particle, template: ParticleDto) {
+create_particle_rad :: proc(particle_array: ^[dynamic]Particle, template: ParticleDto) {
 	particle := Particle {
 		pos               = template.pos,
 		scale             = template.scale,
-		velocity          = FromPolarRad(template.speed, template.angle),
+		velocity          = from_polar_rad(template.speed, template.angle),
 		color             = template.color,
 		lifetime          = template.lifetime,
 		starting_lifetime = template.lifetime,
@@ -72,7 +72,7 @@ CreateParticleRad :: proc(particle_array: ^[dynamic]Particle, template: Particle
 }
 
 // angle from the passed dto parameter is ignored here because why would it be used.
-CreateRadialParticleExplosion :: proc(
+create_radial_particle_explosion :: proc(
 	particle_array: ^[dynamic]Particle,
 	template: ParticleDto,
 	n: int,
@@ -85,11 +85,11 @@ CreateRadialParticleExplosion :: proc(
 
 		particle_dto := template
 		particle_dto.angle = angle
-		CreateParticleRad(particle_array, particle_dto)
+		create_particle_rad(particle_array, particle_dto)
 	}
 }
 
-UpdateParticles :: proc(particle_array: ^[dynamic]Particle) {
+update_particles :: proc(particle_array: ^[dynamic]Particle) {
 	for i := len(particle_array) - 1; i >= 0; i -= 1 {
 		particle := &particle_array[i]
 
@@ -109,15 +109,18 @@ UpdateParticles :: proc(particle_array: ^[dynamic]Particle) {
 			particle.scale.y -= particle.shrink_factor
 		}
 
-		if particle.color_fade {
-			percentage: f32 = f32(particle.lifetime) / f32(particle.starting_lifetime)
-			idx: i32 = i32(math.floor(percentage * f32(len(particle.color_palette))))
-			particle.color = particle.color_palette[idx]
+		if particle.color_fade && particle.color_palette != nil && particle.starting_lifetime > 0 {
+			palette := particle.color_palette^
+			if len(palette) > 0 {
+				percentage := f32(particle.lifetime) / f32(particle.starting_lifetime)
+				idx := int(math.floor(percentage * f32(len(palette))))
+				particle.color = palette[clamp(idx, 0, len(palette) - 1)]
+			}
 		}
 	}
 }
 
-DrawParticles :: proc(particleArray: ^[dynamic]Particle) {
+draw_particles :: proc(particleArray: ^[dynamic]Particle) {
 	for &particle in particleArray {
 		switch (particle.shape) {
 		case .RECTANGLE:

@@ -13,5 +13,5 @@ create_game :: proc() -> Game {
 }
 
 delete_game :: proc(game: ^Game) {
-	//rat.delete_sparse_set(game.projectiles)
+	rat.delete_sparse_set(&game.projectiles)
 }

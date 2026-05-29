@@ -25,15 +25,17 @@ main :: proc() {
 		game  = create_game(),
 	}
 
-	// defer delete_world(state)
-	// defer delete_game(game)
-
 	if (rat.load_sprite_manifest(&state.world.sprite_lib, "assets/sprites/sprites.json")) {
 		fmt.println("Loaded sprite metadata.")
 	}
 
 	raylib.InitWindow(i32(WINDOW_WIDTH), i32(WINDOW_HEIGHT), "Hi!")
 	defer raylib.CloseWindow()
+
+	// declared after CloseWindow's defer so it runs BEFORE it (LIFO) — the GL
+	// context must still be alive to unload sprite textures.
+	defer delete_game(&state.game)
+	defer rat.delete_world(&state.world)
 	raylib.SetTargetFPS(60)
 
 	// create here
@@ -50,7 +52,7 @@ main :: proc() {
 				hflip = 1,
 				image_index = 0,
 				image_speed = 0,
-				offset = {-4, -4},
+				align = .CENTER,
 				sprite_name = "ship",
 				type = .Sprite,
 				vflip = 1,
@@ -67,11 +69,9 @@ main :: proc() {
 
 	for !raylib.WindowShouldClose() {
 
-		UpdateShip(&state, &ship)
+		update_ship(&state, &ship)
 		update_projectiles(&state)
-		rat.UpdateTimers(&state.world)
-		rat.update_grid(&state.world)
-		rat.UpdateParticles(&state.world.particles)
+		rat.update_world(&state.world)
 
 		raylib.BeginTextureMode(target)
 		raylib.ClearBackground(raylib.BLACK)
@@ -85,5 +85,8 @@ main :: proc() {
 		raylib.DrawTexturePro(target.texture, src_rect, dest_rect, {0, 0}, 0.0, raylib.WHITE)
 
 		raylib.EndDrawing()
+
+		// release this frame's scratch allocations (grid queries, sprite paths)
+		free_all(context.temp_allocator)
 	}
 }

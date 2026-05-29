@@ -10,13 +10,13 @@ Timer :: struct {
 	counter:      i32,
 	entity:       Id, // common payload: the entity this timer acts on
 	data:         rawptr, // escape hatch for callbacks needing extra/typed state
-	onComplete:   CallbackAction,
+	on_complete:   CallbackAction,
 }
 
 /*
 EXAMPLE OF USAGE :
 
-SetFrame :: proc(world: ^rat.World, t: ^rat.Timer) {
+set_frame :: proc(world: ^rat.World, t: ^rat.Timer) {
 	sprite_data, ok := rat.get(&world.sprite_data, t.entity)
 	if ok {
 		sprite_data.image_index = 1
@@ -24,17 +24,17 @@ SetFrame :: proc(world: ^rat.World, t: ^rat.Timer) {
 	}
 }
 
-rat.AddTimer(
+rat.add_timer(
 	&state.world.timers,
-	rat.Timer{frame_target = 1, entity = id, onComplete = SetFrame},
+	rat.Timer{frame_target = 1, entity = id, on_complete = set_frame},
 )
 */
 
-AddTimer :: proc(timers: ^[dynamic]Timer, timer: Timer) {
+add_timer :: proc(timers: ^[dynamic]Timer, timer: Timer) {
 	append(timers, timer)
 }
 
-UpdateTimers :: proc(world: ^World) {
+update_timers :: proc(world: ^World) {
 	timers := &world.timers
 	for i := len(timers) - 1; i >= 0; i -= 1 {
 		timer := &timers[i]
@@ -48,7 +48,7 @@ UpdateTimers :: proc(world: ^World) {
 			// schedules another timer (and may realloc this array) can't dangle.
 			t := timer^
 			unordered_remove_dynamic_array(timers, i)
-			if t.onComplete != nil do t.onComplete(world, &t)
+			if t.on_complete != nil do t.on_complete(world, &t)
 		}
 	}
 }

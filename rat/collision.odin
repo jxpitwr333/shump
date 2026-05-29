@@ -10,11 +10,17 @@ GRID_HEIGHT :: 16
 SpatialGrid :: struct {
 	cells:        [GRID_WIDTH][GRID_HEIGHT][dynamic]Id,
 	active_cells: [dynamic][2]u32,
+	// per-entity-slot stamp for O(1) dedup during a range query (see
+	// get_entities_in_range). A slot was already collected this query iff
+	// seen[slot] == seen_tick; bumping the tick invalidates all stamps at once.
+	seen:         []u32,
+	seen_tick:    u32,
 }
 
 create_spatial_grid :: proc() -> SpatialGrid {
 	grid: SpatialGrid
 	grid.active_cells = make([dynamic][2]u32, 0, 64)
+	grid.seen = make([]u32, MAX_ENTITIES) // zero-filled; first tick is 1
 
 	for x in 0 ..< GRID_WIDTH {
 		for y in 0 ..< GRID_HEIGHT {
@@ -22,6 +28,16 @@ create_spatial_grid :: proc() -> SpatialGrid {
 		}
 	}
 	return grid
+}
+
+delete_spatial_grid :: proc(grid: ^SpatialGrid) {
+	for x in 0 ..< GRID_WIDTH {
+		for y in 0 ..< GRID_HEIGHT {
+			delete(grid.cells[x][y])
+		}
+	}
+	delete(grid.active_cells)
+	delete(grid.seen)
 }
 
 // -----------------------------------------------------------------------------
@@ -50,15 +66,25 @@ place_vert :: #force_inline proc(center: raylib.Vector2, lx, ly, cos_r, sin_r: f
 }
 
 make_rect_poly :: proc(center: raylib.Vector2, r: rectangle_t, rot_deg: f32) -> Poly {
-	rot := math.to_radians_f32(rot_deg)
-	cos_r := math.cos(rot)
-	sin_r := math.sin(rot)
-
 	hw := r.width * 0.5
 	hh := r.height * 0.5
 
 	p: Poly
 	p.count = 4
+
+	// fast path: axis-aligned, no trig
+	if rot_deg == 0 {
+		p.verts[0] = {center.x - hw, center.y - hh}
+		p.verts[1] = {center.x + hw, center.y - hh}
+		p.verts[2] = {center.x + hw, center.y + hh}
+		p.verts[3] = {center.x - hw, center.y + hh}
+		return p
+	}
+
+	rot := math.to_radians_f32(rot_deg)
+	cos_r := math.cos(rot)
+	sin_r := math.sin(rot)
+
 	p.verts[0] = place_vert(center, -hw, -hh, cos_r, sin_r)
 	p.verts[1] = place_vert(center, hw, -hh, cos_r, sin_r)
 	p.verts[2] = place_vert(center, hw, hh, cos_r, sin_r)
@@ -199,6 +225,10 @@ update_grid :: proc(world: ^World) {
 get_entities_in_range :: proc(world: ^World, x, y, w, h: f32) -> [dynamic]Id {
 	ids := make([dynamic]Id, context.temp_allocator)
 
+	// bump the stamp so every slot is implicitly "unseen" for this query
+	world.grid.seen_tick += 1
+	tick := world.grid.seen_tick
+
 	x1 := clamp(int(x) / CELL_SIZE, 0, GRID_WIDTH - 1)
 	y1 := clamp(int(y) / CELL_SIZE, 0, GRID_HEIGHT - 1)
 	x2 := clamp(int(x + w) / CELL_SIZE, 0, GRID_WIDTH - 1)
@@ -207,11 +237,10 @@ get_entities_in_range :: proc(world: ^World, x, y, w, h: f32) -> [dynamic]Id {
 	for gx in x1 ..= x2 {
 		for gy in y1 ..= y2 {
 			for eid in world.grid.cells[gx][gy] {
-				found := false
-				for existing in ids {
-					if existing == eid {found = true; break}
-				}
-				if !found do append(&ids, eid)
+				slot := get_idx(eid)
+				if world.grid.seen[slot] == tick do continue // already collected
+				world.grid.seen[slot] = tick
+				append(&ids, eid)
 			}
 		}
 	}

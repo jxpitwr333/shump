@@ -12,12 +12,12 @@ Ship :: struct {
 	can_shoot: bool,
 }
 
-ResetShoot :: proc(world: ^rat.World, t: ^rat.Timer) {
+reset_shoot :: proc(world: ^rat.World, t: ^rat.Timer) {
 	ship := (^Ship)(t.data)
 	ship.can_shoot = true
 }
 
-UpdateShip :: proc(state: ^State, ship: ^Ship) {
+update_ship :: proc(state: ^State, ship: ^Ship) {
 	world := &state.world
 
 	// get components
@@ -36,19 +36,19 @@ UpdateShip :: proc(state: ^State, ship: ^Ship) {
 	move_y: i32 = down_key - up_key
 
 	if move_x != 0 {
-		sprite.sprite_name = "ship_side"
+		rat.set_sprite(sprite, &world.sprite_lib, "ship_side")
 		appearance.hflip = move_x
 	} else {
-		sprite.sprite_name = "ship"
+		rat.set_sprite(sprite, &world.sprite_lib, "ship")
 		appearance.hflip = 1
 	}
 
 	if shoot_key && ship.can_shoot {
 		ship.can_shoot = false
 
-		rat.AddTimer(
+		rat.add_timer(
 			&world.timers,
-			rat.Timer{data = ship, frame_target = 15, onComplete = ResetShoot},
+			rat.Timer{data = ship, frame_target = 15, on_complete = reset_shoot},
 		)
 
 		create_projectile(
@@ -63,7 +63,7 @@ UpdateShip :: proc(state: ^State, ship: ^Ship) {
 	}
 
 	if move_x != 0 || move_y != 0 {
-		rat.CreateParticleRad(
+		rat.create_particle_rad(
 			&world.particles,
 			rat.ParticleDto {
 				pos = transform.position +

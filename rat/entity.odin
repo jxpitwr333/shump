@@ -61,8 +61,23 @@ entity_create :: proc(em: ^EntityManager) -> (Id, bool) {
 entity_destroy :: proc(em: ^EntityManager, i: Id) {
 	idx := entity_index(i)
 
+	// Generation guard: ignore stale / already-destroyed ids. Without this a
+	// double destroy would push the same index onto the free list twice and
+	// later hand out two live entities sharing one slot.
+	if em.generations[idx] != entity_gen(i) do return
+
 	em.generations[idx] += 1
 
 	em.free_indices[em.free_count] = idx
 	em.free_count += 1
+}
+
+// Is this id still the current occupant of its slot? (generation match)
+entity_alive :: #force_inline proc(em: ^EntityManager, i: Id) -> bool {
+	return em.generations[entity_index(i)] == entity_gen(i)
+}
+
+free_entity_manager :: proc(em: ^EntityManager) {
+	delete(em.free_indices)
+	delete(em.generations)
 }

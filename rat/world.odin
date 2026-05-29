@@ -52,6 +52,7 @@ create_object :: proc(
 			offset = image.offset,
 			hflip = image.hflip,
 			vflip = image.vflip,
+			align = image.align,
 		},
 	)
 
@@ -60,7 +61,7 @@ create_object :: proc(
 			&world.sprite_data,
 			id,
 			SpriteData {
-				sprite_name = image.sprite_name,
+				sprite_id = resolve_sprite_id(&world.sprite_lib, image.sprite_name),
 				image_index = image.image_index,
 				frame_counter = 0,
 				image_speed = image.image_speed,
@@ -102,4 +103,32 @@ destroy_object :: proc(world: ^World, id: Id) {
 	remove(&world.sprite_data, id)
 
 	entity_destroy(&world.entity_manager, id)
+}
+
+// Runs the engine's built-in systems in the correct order. Call once per frame
+// after your game-specific update logic and before rendering. Centralizes the
+// ordering (timers must tick before the grid rebuild that reflects their moves).
+update_world :: proc(world: ^World) {
+	update_timers(world)
+	update_grid(world)
+	update_particles(&world.particles)
+}
+
+// Frees everything create_world allocated, including GPU sprite textures.
+// Call before raylib.CloseWindow() so the GL context is still valid.
+delete_world :: proc(world: ^World) {
+	delete_sparse_set(&world.transforms)
+	delete_sparse_set(&world.appearances)
+	delete_sparse_set(&world.colliders_aabb)
+	delete_sparse_set(&world.colliders_ellipse)
+	delete_sparse_set(&world.primitives_rect)
+	delete_sparse_set(&world.primitives_circ)
+	delete_sparse_set(&world.sprite_data)
+
+	delete_spatial_grid(&world.grid)
+	unload_sprite_lib(&world.sprite_lib)
+	free_entity_manager(&world.entity_manager)
+
+	delete(world.timers)
+	delete(world.particles)
 }

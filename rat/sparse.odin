@@ -63,6 +63,11 @@ remove :: proc(set: ^SparseSet($T), id: Id) {
 	set.count -= 1
 }
 
+// Returns a pointer to the entity's component, or (nil, false) if absent.
+// WARNING: the pointer is only valid until the next `remove`/`add` on this set.
+// `remove` swap-fills the freed slot, so a held pointer can silently start
+// referring to a different entity's data. Re-`get` after any mutation; never
+// cache component pointers across a destroy.
 get :: proc(set: ^SparseSet($T), id: Id) -> (^T, bool) {
 	slot := get_idx(id)
 	assert(slot < u32(len(set.sparse)), "Sparse Set: ID out of range.")
@@ -74,6 +79,22 @@ get :: proc(set: ^SparseSet($T), id: Id) -> (^T, bool) {
 	if set.dense[idx] != id do return {}, false
 
 	return &set.data[idx], true
+}
+
+// Does this set hold a (live) component for `id`?
+has :: proc(set: ^SparseSet($T), id: Id) -> bool {
+	slot := get_idx(id)
+	if slot >= u32(len(set.sparse)) do return false
+	idx := set.sparse[slot]
+	return idx != max(u32) && idx < set.count && set.dense[idx] == id
+}
+
+// Active entity ids in this set, for read-only iteration:
+//   for eid in entities(&world.transforms) { ... }
+// Do NOT add/remove from the set while iterating the returned slice. If you
+// need to remove during iteration, loop the dense array backwards by index.
+entities :: #force_inline proc(set: ^SparseSet($T)) -> []Id {
+	return set.dense[:set.count]
 }
 
 delete_sparse_set :: proc(set: ^SparseSet($T)) {
