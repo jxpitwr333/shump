@@ -15,6 +15,7 @@ World :: struct {
 	timers:          [dynamic]Timer,
 	particles:       [dynamic]Particle,
 	destroy_queue:   [dynamic]Id, // entities queued via queue_destroy, flushed in update_world
+	components:      map[typeid]ComponentStore, // user component sets registered via register_component
 }
 
 create_world :: proc() -> World {
@@ -32,6 +33,7 @@ create_world :: proc() -> World {
 		timers = make([dynamic]Timer, 0, 32),
 		particles = make([dynamic]Particle, 0, 64),
 		destroy_queue = make([dynamic]Id, 0, 32),
+		components = make(map[typeid]ComponentStore),
 	}
 }
 
@@ -104,6 +106,12 @@ destroy_object :: proc(world: ^World, id: Id) {
 	remove(&world.primitives_circ, id)
 	remove(&world.sprite_data, id)
 
+	// user-registered component sets (engine doesn't know their type, so it
+	// goes through the erased remove proc stored at registration)
+	for _, store in world.components {
+		store.remove(store.set, id)
+	}
+
 	entity_destroy(&world.entity_manager, id)
 }
 
@@ -149,4 +157,10 @@ delete_world :: proc(world: ^World) {
 	delete(world.timers)
 	delete(world.particles)
 	delete(world.destroy_queue)
+
+	// free each registered user component set, then the registry itself
+	for _, store in world.components {
+		store.destroy(store.set)
+	}
+	delete(world.components)
 }

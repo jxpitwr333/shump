@@ -247,8 +247,26 @@ get_entities_in_range :: proc(world: ^World, x, y, w, h: f32) -> [dynamic]Id {
 	return ids
 }
 
+// layer/mask of an entity's collider (either shape). Returns (0,0) if it has
+// no collider — treated as "unfiltered" by layers_collide.
+@(private = "file")
+collider_filter :: proc(world: ^World, id: Id) -> (layer: u32, mask: u32) {
+	if b, ok := get(&world.colliders_aabb, id); ok do return b.layer, b.mask
+	if e, ok := get(&world.colliders_ellipse, id); ok do return e.layer, e.mask
+	return 0, 0
+}
+
+// A mover with `a_mask` collides with a target on `b_layer` when their bits
+// overlap. A zero on either side means "unfiltered" → always collide, so the
+// default (both 0) preserves collide-with-everything behavior.
+@(private = "file")
+layers_collide :: #force_inline proc(a_mask, b_layer: u32) -> bool {
+	return a_mask == 0 || b_layer == 0 || (a_mask & b_layer) != 0
+}
+
 // Would entity `id` (rotated by its current transform) overlap any other
-// collider if it were moved to (next_x, next_y)? Works for any rect/ellipse mix.
+// collider if it were moved to (next_x, next_y)? Works for any rect/ellipse mix,
+// and skips pairs excluded by layer/mask before the expensive polygon test.
 place_meeting :: proc(world: ^World, id: Id, next_x, next_y: f32) -> bool {
 	t, tok := get(&world.transforms, id)
 	if !tok do return false
@@ -256,12 +274,18 @@ place_meeting :: proc(world: ^World, id: Id, next_x, next_y: f32) -> bool {
 	my_poly, ok := shape_poly_at(world, id, {next_x, next_y}, t.rotation)
 	if !ok do return false
 
+	_, my_mask := collider_filter(world, id)
+
 	// broadphase: query the grid with the candidate polygon's bounding box
 	mn, mx := poly_bounds(&my_poly)
 	nearby := get_entities_in_range(world, mn.x, mn.y, mx.x - mn.x, mx.y - mn.y)
 
 	for other_id in nearby {
 		if other_id == id do continue
+
+		// layer filter first — cheap, and skips building the other's polygon
+		other_layer, _ := collider_filter(world, other_id)
+		if !layers_collide(my_mask, other_layer) do continue
 
 		other_poly, ook := collider_poly(world, other_id)
 		if !ook do continue

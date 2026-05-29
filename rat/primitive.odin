@@ -24,12 +24,18 @@ Circle :: struct {
 // fetch(world, id, T) resolve the right set purely from the type.
 // Both are centered on the entity's transform and rotated by transform.rotation
 // (see collision.odin).
+//
+// layer/mask are collision-filter bitsets: an entity collides with another only
+// if `my.mask & their.layer != 0`. Leaving either at 0 means "unfiltered" —
+// collides with everything (the default, so existing colliders keep working).
 Box :: struct {
 	width, height: f32,
+	layer, mask:   u32,
 }
 
 Ellipse :: struct {
-	rx, ry: f32,
+	rx, ry:      f32,
+	layer, mask: u32,
 }
 
 ColliderShape :: union {

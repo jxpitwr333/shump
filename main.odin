@@ -20,10 +20,9 @@ State :: struct {
 
 // init
 main :: proc() {
-	state := State {
-		world = rat.create_world(),
-		game  = create_game(),
-	}
+	state: State
+	state.world = rat.create_world()
+	state.game = create_game(&state.world) // registers game component sets on the world
 
 	rat.load_sprite_manifest(&state.world.sprite_lib, "assets/sprites/sprites.json")
 

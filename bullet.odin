@@ -60,7 +60,7 @@ create_projectile :: proc(state: ^State, template: ProjectileDto) {
 	)
 
 	rat.add(
-		&state.game.projectiles,
+		state.game.projectiles,
 		id,
 		Projectile {
 			id = id,
@@ -72,10 +72,11 @@ create_projectile :: proc(state: ^State, template: ProjectileDto) {
 
 update_projectiles :: proc(state: ^State) {
 	world := &state.world
-	projectiles := &state.game.projectiles
+	projectiles := state.game.projectiles
 
-	// Forward iteration: removals are queued, not applied inline, so order
-	// doesn't matter and there's no swap-remove gotcha.
+	// Forward iteration: queue_destroy is deferred, so the set isn't mutated
+	// mid-loop — no swap-remove gotcha, and the Projectile component is removed
+	// automatically (the set is registered) when the entity is destroyed.
 	for eid in rat.entities(projectiles) {
 		projectile := rat.must(projectiles, eid)
 		transform := rat.fetch(world, eid, rat.transform_t)
@@ -91,10 +92,7 @@ update_projectiles :: proc(state: ^State) {
 
 		// Bullets travel up the screen; despawn once fully past the top edge.
 		if transform.position.y < -bbox.height {
-			rat.queue_remove(projectiles, eid) // game-side component
-			rat.queue_destroy(world, eid) // engine entity + components
+			rat.queue_destroy(world, eid)
 		}
 	}
-
-	rat.flush_removes(projectiles) // apply this frame's queued removals
 }

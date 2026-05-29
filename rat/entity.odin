@@ -5,7 +5,11 @@ Id :: u32
 
 ID_INDEX_BITS :: 20
 ID_INDEX_MASK :: (1 << ID_INDEX_BITS) - 1
-MAX_ENTITIES :: 10000
+// Upper bound on simultaneously-live entities. Every sparse set (and the grid's
+// `seen` array) allocates its backing arrays at this size up front, so memory
+// scales linearly with it — keep it close to what the game actually needs.
+// Bump it if you ever hit "Out of entities!".
+MAX_ENTITIES :: 2048
 
 EntityManager :: struct {
 	free_indices: []u32,

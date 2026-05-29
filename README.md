@@ -108,42 +108,44 @@ Built-in component types: `transform_t`, `Appearance`, `SpriteData`, `Box`, `Ell
 
 ## Your own component sets
 
-`fetch` covers engine components. For game-specific data, keep your own `SparseSet` keyed by the same `Id`:
+`fetch` covers engine components. For game-specific data, **register** your own component type — the world stores its `SparseSet`, manages its lifecycle, and hands you back a typed handle:
 
 ```odin
 Game :: struct {
-	projectiles: rat.SparseSet(Projectile),
+	projectiles: ^rat.SparseSet(Projectile),   // just hold the handle
 }
-game.projectiles = rat.create_sparse_set(Projectile, rat.MAX_ENTITIES)
+game.projectiles = rat.register_component(&world, Projectile)
 
-rat.add(&game.projectiles, id, Projectile{velocity = {0, -5}})   // attach
-p := rat.must(&game.projectiles, id)                              // get (asserts)
-ok := rat.has(&game.projectiles, id)                             // test
+rat.add(game.projectiles, id, Projectile{velocity = {0, -5}})   // attach
+p := rat.must(game.projectiles, id)                             // get (asserts)
+ok := rat.has(game.projectiles, id)                             // test
 ```
 
 `must` is the assert-it-exists getter; `get` returns `(ptr, ok)` for the maybe-present case.
+
+Because the set is registered, the world cleans it up for you: `delete_world` frees it, and **destroying an entity automatically removes it from every registered set** — no manual per-set bookkeeping.
 
 ---
 
 ## Iterating & removing
 
-Loop **forward** over a set with `entities`, and **queue** removals — never mutate a set mid-iteration:
+Loop **forward** over a set with `entities`, and **queue** destruction — never mutate a set mid-iteration:
 
 ```odin
-for eid in rat.entities(&game.projectiles) {
-	p := rat.must(&game.projectiles, eid)
+for eid in rat.entities(game.projectiles) {
+	p := rat.must(game.projectiles, eid)
 	t := rat.fetch(&world, eid, rat.transform_t)
 	t.position += p.velocity
 
 	if t.position.y < 0 {
-		rat.queue_remove(&game.projectiles, eid)   // drop your component
-		rat.queue_destroy(&world, eid)             // destroy the engine entity
+		rat.queue_destroy(&world, eid)   // entity + all its (registered) components
 	}
 }
-rat.flush_removes(&game.projectiles)               // apply queued removals
 ```
 
-`queue_destroy` is flushed automatically at the start of the next `update_world`; `queue_remove` is flushed by your `flush_removes` call. Because nothing is removed inline, order never matters — no swap-remove gotchas.
+`queue_destroy` is deferred — flushed at the start of the next `update_world` — so nothing is removed inline and order never matters. The entity drops out of every registered component set (including your `projectiles`) in one shot.
+
+> Need to remove a component *without* destroying the entity, mid-loop? `queue_remove(set, id)` defers it and `flush_removes(set)` applies the batch after the loop.
 
 ---
 
@@ -185,6 +187,17 @@ Colliders are convex polygons tested with SAT, so **rotation and ellipses work o
 if rat.place_meeting(&world, id, next_x, next_y) {
 	// blocked
 }
+```
+
+**Layers & masks** filter what collides with what. Each collider carries a `layer` (what it *is*) and a `mask` (what it collides *with*), as bitsets you set on the shape. A pair is tested only when `mover.mask & other.layer != 0`; leaving either at `0` means "unfiltered" (collides with everything), so the default is unchanged. The filter is checked *before* the polygon test, so excluded pairs cost almost nothing:
+
+```odin
+LAYER_PLAYER :: u32(1 << 0)
+LAYER_ENEMY  :: u32(1 << 1)
+LAYER_BULLET :: u32(1 << 2)
+
+// a player bullet: it IS a bullet, it collides only with enemies
+rat.Box{width = 8, height = 8, layer = LAYER_BULLET, mask = LAYER_ENEMY}
 ```
 
 `rat.debug_draw_collisions(&world)` (call inside the render pass) outlines every collider exactly as the SAT test sees it.
