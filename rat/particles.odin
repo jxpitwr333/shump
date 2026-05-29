@@ -19,8 +19,7 @@ Particle :: struct {
 	shrink:            bool,
 	shrink_factor:     f32,
 	color_fade:        bool,
-	color_palette:     []rl.Color,
-	palette_length:    i32,
+	color_palette:     ^[]rl.Color,
 }
 
 ParticleDto :: struct {
@@ -35,8 +34,7 @@ ParticleDto :: struct {
 	shrink_factor:     f32,
 	shape:             ParticleShapes,
 	color_fade:        bool,
-	color_palette:     []rl.Color,
-	palette_length:    i32,
+	color_palette:     ^[]rl.Color,
 }
 
 CreateParticleDeg :: proc(particle_array: ^[dynamic]Particle, template: ParticleDto) {
@@ -52,7 +50,6 @@ CreateParticleDeg :: proc(particle_array: ^[dynamic]Particle, template: Particle
 		shape             = template.shape,
 		color_fade        = template.color_fade,
 		color_palette     = template.color_palette,
-		palette_length    = template.palette_length,
 	}
 	append(particle_array, particle)
 }
@@ -70,7 +67,6 @@ CreateParticleRad :: proc(particle_array: ^[dynamic]Particle, template: Particle
 		shape             = template.shape,
 		color_fade        = template.color_fade,
 		color_palette     = template.color_palette,
-		palette_length    = template.palette_length,
 	}
 	append(particle_array, particle)
 }
@@ -115,7 +111,7 @@ UpdateParticles :: proc(particle_array: ^[dynamic]Particle) {
 
 		if particle.color_fade {
 			percentage: f32 = f32(particle.lifetime) / f32(particle.starting_lifetime)
-			idx: i32 = i32(math.floor(percentage * f32(particle.palette_length)))
+			idx: i32 = i32(math.floor(percentage * f32(len(particle.color_palette))))
 			particle.color = particle.color_palette[idx]
 		}
 	}

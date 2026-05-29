@@ -13,7 +13,6 @@ Appearance :: struct {
 	offset: [2]f32,
 	hflip:  i32, // (-1, 1)
 	vflip:  i32, // (-1, 1)
-	scale:  [2]f32, //visual scale, does not affect collisions.
 }
 
 SpriteData :: struct {

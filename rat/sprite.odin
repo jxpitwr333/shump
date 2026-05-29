@@ -65,26 +65,6 @@ render_sprites :: proc(world: ^World) {
 
 		sprite := get_sprite(&world.sprite_lib, sprite_data.sprite_name)
 
-		sprite_data.frame_counter += sprite_data.image_speed
-		//update animation
-		if (sprite_data.frame_counter >= 1.0) {
-			sprite_data.frame_counter -= 1.0
-			sprite_data.image_index += 1
-
-			if (sprite_data.image_index >= sprite.total_frames) {
-				sprite_data.image_index = 0
-			}
-		}
-
-		// draw
-		/*raylib.DrawTextureEx(
-			sprite.frames[sprite_data.image_index],
-			vec2_add(transform.position, appearance.offset),
-			transform.rotation,
-			transform.scale.x, // FIXME: use scale vector properly
-			raylib.WHITE,
-		)*/
-
 		position := vec2_add(transform.position, appearance.offset)
 		frame := sprite.frames[sprite_data.image_index]
 
@@ -103,5 +83,16 @@ render_sprites :: proc(world: ^World) {
 			transform.rotation,
 			appearance.tint,
 		)
+
+		sprite_data.frame_counter += sprite_data.image_speed
+		//update animation
+		if (sprite_data.frame_counter >= 1.0) {
+			sprite_data.frame_counter -= 1.0
+			sprite_data.image_index += 1
+
+			if (sprite_data.image_index >= sprite.total_frames) {
+				sprite_data.image_index = 0
+			}
+		}
 	}
 }

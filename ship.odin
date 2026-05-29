@@ -12,8 +12,8 @@ Ship :: struct {
 	can_shoot: bool,
 }
 
-ResetShoot :: proc(raw: rawptr) {
-	ship := (^Ship)(raw)
+ResetShoot :: proc(world: ^rat.World, t: ^rat.Timer) {
+	ship := (^Ship)(t.data)
 	ship.can_shoot = true
 }
 
@@ -48,14 +48,14 @@ UpdateShip :: proc(state: ^State, ship: ^Ship) {
 
 		rat.AddTimer(
 			&world.timers,
-			rat.Timer{counter = 0, data = ship, frame_target = 15, onComplete = ResetShoot},
+			rat.Timer{data = ship, frame_target = 15, onComplete = ResetShoot},
 		)
 
 		create_projectile(
 			state,
 			ProjectileDto {
 				type = .BULLET,
-				position = {transform.position.x, transform.position.y},
+				position = {transform.position.x, transform.position.y + 4},
 				angle = 270,
 				speed = 5,
 			},
@@ -77,8 +77,7 @@ UpdateShip :: proc(state: ^State, ship: ^Ship) {
 				shrink_factor = 0.1,
 				speed = 0,
 				color_fade = true,
-				color_palette = palette,
-				palette_length = 4,
+				color_palette = &palette
 			},
 		)
 

@@ -20,16 +20,8 @@ ProjectileDto :: struct {
 	speed:    f32,
 }
 
-StateIdHelper :: struct {
-	state: ^State,
-	id:    rat.Id,
-}
-
-SetFrame :: proc(raw: rawptr) {
-	data := (^StateIdHelper)(raw)
-	defer free(data)
-
-	sprite_data, ok := rat.get(&data.state.world.sprite_data, data.id)
+SetFrame :: proc(world: ^rat.World, t: ^rat.Timer) {
+	sprite_data, ok := rat.get(&world.sprite_data, t.entity)
 	if ok {
 		sprite_data.image_index = 1
 		sprite_data.image_speed = 0
@@ -38,7 +30,7 @@ SetFrame :: proc(raw: rawptr) {
 
 create_projectile :: proc(state: ^State, template: ProjectileDto) {
 	sprite_name: string = ""
-	bbox: [2]f32 = {8, 8}
+	bbox: rat.ColliderShape = rat.rectangle_t{width = 8, height = 8}
 
 	switch (template.type) {
 	case .BULLET:
@@ -50,7 +42,7 @@ create_projectile :: proc(state: ^State, template: ProjectileDto) {
 		color       = raylib.WHITE,
 		hflip       = 1,
 		vflip       = 1,
-		image_index = 1,
+		image_index = 0,
 		image_speed = 1,
 		offset      = {-4, -4}, /*hardcoded*/
 		sprite_name = sprite_name,
@@ -76,32 +68,37 @@ create_projectile :: proc(state: ^State, template: ProjectileDto) {
 			velocity = rat.FromPolarDeg(template.speed, template.angle),
 		},
 	)
-
-	data := new(StateIdHelper)
-	data.state = state
-	data.id = id
-
-	rat.AddTimer(
-		&state.world.timers,
-		rat.Timer{counter = 0, data = data, frame_target = 1, onComplete = SetFrame},
-	)
 }
 
 update_projectiles :: proc(state: ^State) {
-	for i in 0 ..< state.game.projectiles.count {
-		eid := state.game.projectiles.dense[i]
+	projectiles := &state.game.projectiles
 
-		projectile, pok := rat.get(&state.game.projectiles, eid)
+	// Iterate backwards: despawning swap-removes the last element into the
+	// current slot, so going high→low never skips or revisits an entity.
+	for i := int(projectiles.count) - 1; i >= 0; i -= 1 {
+		eid := projectiles.dense[i]
+
+		projectile, pok := rat.get(projectiles, eid)
 		transform, tok := rat.get(&state.world.transforms, eid)
 		// are colliders being rotated?
 		bbox, bok := rat.get(&state.world.colliders_aabb, eid)
+		sprite_data, sok := rat.get(&state.world.sprite_data, eid)
 
-		if transform.position.y > -bbox.height {
-			// need to delete.
+		if !pok || !tok do continue
+
+		transform.position += projectile.velocity
+
+		if sok {
+			if sprite_data.image_index == 1 {
+				sprite_data.image_speed = 0
+				sprite_data.image_index = 1
+			}
 		}
 
-		if tok && pok {
-			transform.position += projectile.velocity
+		// Bullets travel up the screen; despawn once fully past the top edge.
+		if bok && transform.position.y < -bbox.height {
+			rat.remove(projectiles, eid) // game-side set
+			rat.destroy_object(&state.world, eid) // engine components + id
 		}
 	}
 }

@@ -75,3 +75,14 @@ get :: proc(set: ^SparseSet($T), id: Id) -> (^T, bool) {
 
 	return &set.data[idx], true
 }
+
+delete_sparse_set :: proc(set: ^SparseSet($T)) {
+	delete(set.data)
+	delete(set.dense)
+	delete(set.sparse)
+}
+
+clear_sparse_set :: proc(set: ^SparseSet($T)) {
+	set.count = 0
+	slice.fill(set.sparse, U32_MAX)
+}

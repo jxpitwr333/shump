@@ -55,7 +55,7 @@ main :: proc() {
 				type = .Sprite,
 				vflip = 1,
 			},
-			[2]f32{8, 8},
+			rat.rectangle_t{width = 8, height = 8},
 		),
 		can_shoot = true,
 	}
@@ -69,7 +69,7 @@ main :: proc() {
 
 		UpdateShip(&state, &ship)
 		update_projectiles(&state)
-		rat.UpdateTimers(&state.world.timers)
+		rat.UpdateTimers(&state.world)
 		rat.update_grid(&state.world)
 		rat.UpdateParticles(&state.world.particles)
 

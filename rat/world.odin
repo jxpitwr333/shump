@@ -6,7 +6,7 @@ World :: struct {
 	transforms:      SparseSet(transform_t),
 	appearances:     SparseSet(Appearance),
 	colliders_aabb:  SparseSet(rectangle_t),
-	colliders_circ:  SparseSet(Circle),
+	colliders_ellipse: SparseSet(Ellipse),
 	sprite_lib:      SpriteLibrary,
 	grid:            SpatialGrid,
 	primitives_rect: SparseSet(rectangle_t),
@@ -22,7 +22,7 @@ create_world :: proc() -> World {
 		transforms = create_sparse_set(transform_t, MAX_ENTITIES),
 		appearances = create_sparse_set(Appearance, MAX_ENTITIES),
 		colliders_aabb = create_sparse_set(rectangle_t, MAX_ENTITIES),
-		colliders_circ = create_sparse_set(Circle, MAX_ENTITIES),
+		colliders_ellipse = create_sparse_set(Ellipse, MAX_ENTITIES),
 		sprite_lib = init_sprite_lib(),
 		grid = create_spatial_grid(),
 		primitives_rect = create_sparse_set(rectangle_t, MAX_ENTITIES),
@@ -37,7 +37,7 @@ create_object :: proc(
 	world: ^World,
 	transform: transform_t,
 	image: ImageParams,
-	bbox: Shape,
+	bbox: ColliderShape,
 ) -> Id {
 	id, ok := entity_create(&world.entity_manager)
 	assert(ok, "Failed to create entity, EntityManager is out of capacity.")
@@ -76,13 +76,30 @@ create_object :: proc(
 	}
 
 	switch val in bbox {
-	case [2]f32:
-		add(&world.colliders_aabb, id, rectangle_t{width = val.x, height = val.y})
-		break
-	case f32:
-		add(&world.colliders_circ, id, Circle{radius = val})
-		break
+	case rectangle_t:
+		add(&world.colliders_aabb, id, val)
+	case Ellipse:
+		add(&world.colliders_ellipse, id, val)
 	}
 
 	return id
+}
+
+// Removes an entity and all of its components, then recycles the id.
+// Idempotent: calling it on an already-destroyed id is a no-op (every live
+// entity has a transform, so its presence is used as the liveness check).
+// The spatial grid is rebuilt from colliders each frame, so dropping the
+// collider components here is enough — no manual grid cleanup required.
+destroy_object :: proc(world: ^World, id: Id) {
+	if _, alive := get(&world.transforms, id); !alive do return
+
+	remove(&world.transforms, id)
+	remove(&world.appearances, id)
+	remove(&world.colliders_aabb, id)
+	remove(&world.colliders_ellipse, id)
+	remove(&world.primitives_rect, id)
+	remove(&world.primitives_circ, id)
+	remove(&world.sprite_data, id)
+
+	entity_destroy(&world.entity_manager, id)
 }

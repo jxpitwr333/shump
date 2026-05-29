@@ -18,6 +18,19 @@ Circle :: struct {
 	radius: f32,
 }
 
+// Collider shape passed to create_object. Distinct from `Shape` because a
+// rectangle and an ellipse both carry two floats — a typed union keeps them
+// unambiguous. Both are treated as centered on the entity's transform and
+// rotated by transform.rotation (see collision.odin).
+Ellipse :: struct {
+	rx, ry: f32,
+}
+
+ColliderShape :: union {
+	rectangle_t, // {width, height}
+	Ellipse, // {rx, ry}
+}
+
 // specific render calls
 
 render_primitive_rects :: proc(world: ^World) {
