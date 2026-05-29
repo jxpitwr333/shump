@@ -45,5 +45,6 @@ load_sprite_manifest :: proc(lib: ^SpriteLibrary, manifest_path: string) -> bool
 		lib.count += 1
 	}
 
+	fmt.println("Loaded sprite metadata.")
 	return true
 }

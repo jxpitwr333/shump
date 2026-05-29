@@ -104,7 +104,7 @@ render_sprites :: proc(world: ^World) {
 
 		sprite := get_sprite_by_id(&world.sprite_lib, sprite_data.sprite_id)
 
-		position := vec2_add(transform.position, appearance.offset)
+		position := transform.position + appearance.offset
 		frame := sprite.frames[sprite_data.image_index]
 
 		dims := [2]f32{f32(frame.width), f32(frame.height)}

@@ -25,9 +25,7 @@ main :: proc() {
 		game  = create_game(),
 	}
 
-	if (rat.load_sprite_manifest(&state.world.sprite_lib, "assets/sprites/sprites.json")) {
-		fmt.println("Loaded sprite metadata.")
-	}
+	rat.load_sprite_manifest(&state.world.sprite_lib, "assets/sprites/sprites.json")
 
 	raylib.InitWindow(i32(WINDOW_WIDTH), i32(WINDOW_HEIGHT), "Hi!")
 	defer raylib.CloseWindow()

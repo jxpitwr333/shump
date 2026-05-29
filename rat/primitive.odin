@@ -74,7 +74,7 @@ render_primitive_circs :: proc(world: ^World) {
 		if !tok || !aok do continue
 
 		raylib.DrawCircleV(
-			vec2_add(transform.position, appearance.offset),
+			transform.position + appearance.offset,
 			circle.radius,
 			appearance.tint,
 		)
