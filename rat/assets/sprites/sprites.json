@@ -1,0 +1,4 @@
+[
+    {"name": "", "path": "sprites/null", "frames": 1},
+    { "name": "rat", "path": "sprites/rat",  "frames": 2 }
+]

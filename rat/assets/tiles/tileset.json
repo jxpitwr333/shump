@@ -1,0 +1,7 @@
+{
+  "brick": {
+    "type": "Solid",
+    "path": "assets/tiles/brick.png",
+    "metadata": ""
+  }
+}
