@@ -20,11 +20,11 @@ reset_shoot :: proc(world: ^rat.World, t: ^rat.Timer) {
 update_ship :: proc(state: ^State, ship: ^Ship) {
 	world := &state.world
 
-	// get components
-	transform, _ := rat.get(&world.transforms, ship.id)
-	sprite, _ := rat.get(&world.sprite_data, ship.id)
-	appearance, _ := rat.get(&world.appearances, ship.id)
-	bbox, _ := rat.get(&world.colliders_aabb, ship.id)
+	// get components (set resolved from the type; asserts they exist)
+	transform := rat.fetch(world, ship.id, rat.transform_t)
+	sprite := rat.fetch(world, ship.id, rat.SpriteData)
+	appearance := rat.fetch(world, ship.id, rat.Appearance)
+	bbox := rat.fetch(world, ship.id, rat.Box)
 
 	// movement
 	right_key: i32 = raylib.IsKeyDown(.RIGHT) ? 1 : 0

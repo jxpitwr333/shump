@@ -30,7 +30,7 @@ set_frame :: proc(world: ^rat.World, t: ^rat.Timer) {
 
 create_projectile :: proc(state: ^State, template: ProjectileDto) {
 	sprite_name: string = ""
-	bbox: rat.ColliderShape = rat.rectangle_t{width = 8, height = 8}
+	bbox: rat.ColliderShape = rat.Box{width = 8, height = 8}
 
 	switch (template.type) {
 	case .BULLET:
@@ -71,34 +71,30 @@ create_projectile :: proc(state: ^State, template: ProjectileDto) {
 }
 
 update_projectiles :: proc(state: ^State) {
+	world := &state.world
 	projectiles := &state.game.projectiles
 
-	// Iterate backwards: despawning swap-removes the last element into the
-	// current slot, so going high→low never skips or revisits an entity.
-	for i := int(projectiles.count) - 1; i >= 0; i -= 1 {
-		eid := projectiles.dense[i]
-
-		projectile, pok := rat.get(projectiles, eid)
-		transform, tok := rat.get(&state.world.transforms, eid)
-		// are colliders being rotated?
-		bbox, bok := rat.get(&state.world.colliders_aabb, eid)
-		sprite_data, sok := rat.get(&state.world.sprite_data, eid)
-
-		if !pok || !tok do continue
+	// Forward iteration: removals are queued, not applied inline, so order
+	// doesn't matter and there's no swap-remove gotcha.
+	for eid in rat.entities(projectiles) {
+		projectile := rat.must(projectiles, eid)
+		transform := rat.fetch(world, eid, rat.transform_t)
+		bbox := rat.fetch(world, eid, rat.Box)
+		sprite_data := rat.fetch(world, eid, rat.SpriteData)
 
 		transform.position += projectile.velocity
 
-		if sok {
-			if sprite_data.image_index == 1 {
-				sprite_data.image_speed = 0
-				sprite_data.image_index = 1
-			}
+		// muzzle-flash one-shot: once it has advanced to frame 1, stop animating
+		if sprite_data.image_index == 1 {
+			sprite_data.image_speed = 0
 		}
 
 		// Bullets travel up the screen; despawn once fully past the top edge.
-		if bok && transform.position.y < -bbox.height {
-			rat.remove(projectiles, eid) // game-side set
-			rat.destroy_object(&state.world, eid) // engine components + id
+		if transform.position.y < -bbox.height {
+			rat.queue_remove(projectiles, eid) // game-side component
+			rat.queue_destroy(world, eid) // engine entity + components
 		}
 	}
+
+	rat.flush_removes(projectiles) // apply this frame's queued removals
 }

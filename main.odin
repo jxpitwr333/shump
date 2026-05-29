@@ -57,7 +57,7 @@ main :: proc() {
 				type = .Sprite,
 				vflip = 1,
 			},
-			rat.rectangle_t{width = 8, height = 8},
+			rat.Box{width = 8, height = 8},
 		),
 		can_shoot = true,
 	}

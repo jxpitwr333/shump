@@ -5,10 +5,11 @@ import "core:slice"
 U32_MAX :: 4_294_967_295
 
 SparseSet :: struct($T: typeid) {
-	sparse: []u32,
-	dense:  []Id,
-	data:   []T,
-	count:  u32,
+	sparse:  []u32,
+	dense:   []Id,
+	data:    []T,
+	count:   u32,
+	pending: [dynamic]Id, // ids queued for deferred removal (see queue_remove)
 }
 
 // Quick bit-mask to pull the raw slot index out of a packed Id
@@ -18,10 +19,11 @@ get_idx :: #force_inline proc(id: Id) -> u32 {
 
 create_sparse_set :: proc($T: typeid, max: u32) -> SparseSet(T) {
 	s := SparseSet(T) {
-		sparse = make([]u32, max),
-		dense  = make([]Id, max),
-		data   = make([]T, max),
-		count  = 0,
+		sparse  = make([]u32, max),
+		dense   = make([]Id, max),
+		data    = make([]T, max),
+		count   = 0,
+		pending = make([dynamic]Id, 0, 16),
 	}
 
 	slice.fill(s.sparse, U32_MAX)
@@ -81,6 +83,28 @@ get :: proc(set: ^SparseSet($T), id: Id) -> (^T, bool) {
 	return &set.data[idx], true
 }
 
+// Like get, but asserts the component exists and returns just the pointer.
+// Use when the component is guaranteed present (e.g. an entity you just made);
+// use get when it may be absent.
+must :: proc(set: ^SparseSet($T), id: Id) -> ^T {
+	ptr, ok := get(set, id)
+	assert(ok, "must: entity is missing this component")
+	return ptr
+}
+
+// Queue an id for removal without mutating the set now — safe to call while
+// looping over entities(set). Apply the whole batch later with flush_removes.
+queue_remove :: proc(set: ^SparseSet($T), id: Id) {
+	append(&set.pending, id)
+}
+
+// Applies all queued removals. remove() is by-id and order-independent, so a
+// batched flush is safe regardless of swap-remove reshuffling.
+flush_removes :: proc(set: ^SparseSet($T)) {
+	for id in set.pending do remove(set, id)
+	clear(&set.pending)
+}
+
 // Does this set hold a (live) component for `id`?
 has :: proc(set: ^SparseSet($T), id: Id) -> bool {
 	slot := get_idx(id)
@@ -101,9 +125,11 @@ delete_sparse_set :: proc(set: ^SparseSet($T)) {
 	delete(set.data)
 	delete(set.dense)
 	delete(set.sparse)
+	delete(set.pending)
 }
 
 clear_sparse_set :: proc(set: ^SparseSet($T)) {
 	set.count = 0
 	slice.fill(set.sparse, U32_MAX)
+	clear(&set.pending)
 }

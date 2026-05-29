@@ -65,7 +65,7 @@ place_vert :: #force_inline proc(center: raylib.Vector2, lx, ly, cos_r, sin_r: f
 	return raylib.Vector2{center.x + lx * cos_r - ly * sin_r, center.y + lx * sin_r + ly * cos_r}
 }
 
-make_rect_poly :: proc(center: raylib.Vector2, r: rectangle_t, rot_deg: f32) -> Poly {
+make_rect_poly :: proc(center: raylib.Vector2, r: Box, rot_deg: f32) -> Poly {
 	hw := r.width * 0.5
 	hh := r.height * 0.5
 

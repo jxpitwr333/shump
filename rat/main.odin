@@ -15,7 +15,7 @@ main :: proc() {
 		&world,
 		transform_t{position = {20, 20}, scale = {1, 1}, rotation = 0},
 		ImageParams{type = .Primitive, shape = [2]f32{20, 20}, color = raylib.RED},
-		rectangle_t{width = 20, height = 20},
+		Box{width = 20, height = 20},
 	)
 	// end creation
 

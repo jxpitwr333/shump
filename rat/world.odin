@@ -5,7 +5,7 @@ World :: struct {
 	entity_manager:  EntityManager,
 	transforms:      SparseSet(transform_t),
 	appearances:     SparseSet(Appearance),
-	colliders_aabb:  SparseSet(rectangle_t),
+	colliders_aabb:  SparseSet(Box),
 	colliders_ellipse: SparseSet(Ellipse),
 	sprite_lib:      SpriteLibrary,
 	grid:            SpatialGrid,
@@ -14,6 +14,7 @@ World :: struct {
 	sprite_data:     SparseSet(SpriteData),
 	timers:          [dynamic]Timer,
 	particles:       [dynamic]Particle,
+	destroy_queue:   [dynamic]Id, // entities queued via queue_destroy, flushed in update_world
 }
 
 create_world :: proc() -> World {
@@ -21,7 +22,7 @@ create_world :: proc() -> World {
 		entity_manager = create_entity_manager(),
 		transforms = create_sparse_set(transform_t, MAX_ENTITIES),
 		appearances = create_sparse_set(Appearance, MAX_ENTITIES),
-		colliders_aabb = create_sparse_set(rectangle_t, MAX_ENTITIES),
+		colliders_aabb = create_sparse_set(Box, MAX_ENTITIES),
 		colliders_ellipse = create_sparse_set(Ellipse, MAX_ENTITIES),
 		sprite_lib = init_sprite_lib(),
 		grid = create_spatial_grid(),
@@ -30,6 +31,7 @@ create_world :: proc() -> World {
 		sprite_data = create_sparse_set(SpriteData, MAX_ENTITIES),
 		timers = make([dynamic]Timer, 0, 32),
 		particles = make([dynamic]Particle, 0, 64),
+		destroy_queue = make([dynamic]Id, 0, 32),
 	}
 }
 
@@ -77,7 +79,7 @@ create_object :: proc(
 	}
 
 	switch val in bbox {
-	case rectangle_t:
+	case Box:
 		add(&world.colliders_aabb, id, val)
 	case Ellipse:
 		add(&world.colliders_ellipse, id, val)
@@ -105,10 +107,25 @@ destroy_object :: proc(world: ^World, id: Id) {
 	entity_destroy(&world.entity_manager, id)
 }
 
+// Queues an entity for destruction at the next update_world flush. Safe to call
+// while iterating — nothing is mutated until the flush, so you can loop forward
+// over entities() and queue removals without worrying about swap-remove order.
+queue_destroy :: proc(world: ^World, id: Id) {
+	append(&world.destroy_queue, id)
+}
+
+@(private = "file")
+flush_destroys :: proc(world: ^World) {
+	for id in world.destroy_queue do destroy_object(world, id)
+	clear(&world.destroy_queue)
+}
+
 // Runs the engine's built-in systems in the correct order. Call once per frame
 // after your game-specific update logic and before rendering. Centralizes the
-// ordering (timers must tick before the grid rebuild that reflects their moves).
+// ordering: queued destroys are applied first, then timers tick, then the grid
+// rebuilds to reflect this frame's moves and removals.
 update_world :: proc(world: ^World) {
+	flush_destroys(world)
 	update_timers(world)
 	update_grid(world)
 	update_particles(&world.particles)
@@ -131,4 +148,5 @@ delete_world :: proc(world: ^World) {
 
 	delete(world.timers)
 	delete(world.particles)
+	delete(world.destroy_queue)
 }

@@ -9,7 +9,7 @@ Shape :: union {
 	f32, // radius
 }
 
-// structs for both primitives and collisions.
+// Primitive (drawing) shapes.
 rectangle_t :: struct {
 	width, height: f32,
 }
@@ -18,16 +18,22 @@ Circle :: struct {
 	radius: f32,
 }
 
-// Collider shape passed to create_object. Distinct from `Shape` because a
-// rectangle and an ellipse both carry two floats — a typed union keeps them
-// unambiguous. Both are treated as centered on the entity's transform and
-// rotated by transform.rotation (see collision.odin).
+// Collider shapes. These are deliberately DISTINCT types from the primitive
+// shapes above (even though Box mirrors rectangle_t's fields) so that every
+// component type maps 1:1 to a single sparse set — that's what lets
+// fetch(world, id, T) resolve the right set purely from the type.
+// Both are centered on the entity's transform and rotated by transform.rotation
+// (see collision.odin).
+Box :: struct {
+	width, height: f32,
+}
+
 Ellipse :: struct {
 	rx, ry: f32,
 }
 
 ColliderShape :: union {
-	rectangle_t, // {width, height}
+	Box, // {width, height}
 	Ellipse, // {rx, ry}
 }
 
