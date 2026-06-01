@@ -60,6 +60,8 @@ update_ship :: proc(state: ^State, ship: ^Ship) {
 				speed = 5,
 			},
 		)
+
+		add_screenshake(6)
 	}
 
 	if move_x != 0 || move_y != 0 {
@@ -77,7 +79,7 @@ update_ship :: proc(state: ^State, ship: ^Ship) {
 				shrink_factor = 0.1,
 				speed = 0,
 				color_fade = true,
-				color_palette = &palette
+				color_palette = &palette,
 			},
 		)
 

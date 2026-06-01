@@ -445,7 +445,7 @@
 29	assets/tiles/lvl1.json	/^    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,$/;"	n	array:tiles
 29	rat/assets/tiles/level.json	/^		-1,$/;"	n	array:tiles
 29	rat/assets/tiles/lvl1.json	/^    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,$/;"	n	array:tiles
-3	assets/sprites/sprites.json	/^    { "name": "bullet", "path": "sprites\/bullet",  "frames": 2 }$/;"	o
+3	assets/sprites/sprites.json	/^    { "name": "bullet", "path": "sprites\/bullet",  "frames": 2 },$/;"	o
 3	assets/tiles/level.json	/^		0,$/;"	n	array:tiles
 3	assets/tiles/lvl1.json	/^    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,$/;"	n	array:tiles
 3	rat/assets/tiles/level.json	/^		0,$/;"	n	array:tiles
@@ -490,6 +490,7 @@
 39	assets/tiles/lvl1.json	/^    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0$/;"	n	array:tiles
 39	rat/assets/tiles/level.json	/^		-1,$/;"	n	array:tiles
 39	rat/assets/tiles/lvl1.json	/^    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0$/;"	n	array:tiles
+4	assets/sprites/sprites.json	/^	{ "name": "alien_green", "path": "sprites\/green", "frames": 2 }$/;"	o
 4	assets/tiles/level.json	/^		0,$/;"	n	array:tiles
 4	assets/tiles/lvl1.json	/^    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,$/;"	n	array:tiles
 4	rat/assets/tiles/level.json	/^		0,$/;"	n	array:tiles
@@ -680,7 +681,8 @@ Timers	README.md	/^## Timers$/;"	s	chapter:rat
 Your own component sets	README.md	/^## Your own component sets$/;"	s	chapter:rat
 brick	assets/tiles/tileset.json	/^  "brick": {$/;"	o
 brick	rat/assets/tiles/tileset.json	/^  "brick": {$/;"	o
-frames	assets/sprites/sprites.json	/^    { "name": "bullet", "path": "sprites\/bullet",  "frames": 2 }$/;"	n	object:3
+frames	assets/sprites/sprites.json	/^	{ "name": "alien_green", "path": "sprites\/green", "frames": 2 }$/;"	n	object:4
+frames	assets/sprites/sprites.json	/^    { "name": "bullet", "path": "sprites\/bullet",  "frames": 2 },$/;"	n	object:3
 frames	assets/sprites/sprites.json	/^    { "name": "ship", "path": "sprites\/ship",  "frames": 1 },$/;"	n	object:1
 frames	assets/sprites/sprites.json	/^    { "name": "ship_side", "path": "sprites\/ship_left",  "frames": 1 },$/;"	n	object:2
 frames	assets/sprites/sprites.json	/^    {"name": "", "path": "sprites\/null", "frames": 1},$/;"	n	object:0
@@ -692,13 +694,15 @@ height	rat/assets/tiles/level.json	/^	"height": 16,$/;"	n
 height	rat/assets/tiles/lvl1.json	/^  "height": 16,$/;"	n
 metadata	assets/tiles/tileset.json	/^    "metadata": ""$/;"	s	object:brick
 metadata	rat/assets/tiles/tileset.json	/^    "metadata": ""$/;"	s	object:brick
-name	assets/sprites/sprites.json	/^    { "name": "bullet", "path": "sprites\/bullet",  "frames": 2 }$/;"	s	object:3
+name	assets/sprites/sprites.json	/^	{ "name": "alien_green", "path": "sprites\/green", "frames": 2 }$/;"	s	object:4
+name	assets/sprites/sprites.json	/^    { "name": "bullet", "path": "sprites\/bullet",  "frames": 2 },$/;"	s	object:3
 name	assets/sprites/sprites.json	/^    { "name": "ship", "path": "sprites\/ship",  "frames": 1 },$/;"	s	object:1
 name	assets/sprites/sprites.json	/^    { "name": "ship_side", "path": "sprites\/ship_left",  "frames": 1 },$/;"	s	object:2
 name	assets/sprites/sprites.json	/^    {"name": "", "path": "sprites\/null", "frames": 1},$/;"	s	object:0
 name	rat/assets/sprites/sprites.json	/^    { "name": "rat", "path": "sprites\/rat",  "frames": 2 }$/;"	s	object:1
 name	rat/assets/sprites/sprites.json	/^    {"name": "", "path": "sprites\/null", "frames": 1},$/;"	s	object:0
-path	assets/sprites/sprites.json	/^    { "name": "bullet", "path": "sprites\/bullet",  "frames": 2 }$/;"	s	object:3
+path	assets/sprites/sprites.json	/^	{ "name": "alien_green", "path": "sprites\/green", "frames": 2 }$/;"	s	object:4
+path	assets/sprites/sprites.json	/^    { "name": "bullet", "path": "sprites\/bullet",  "frames": 2 },$/;"	s	object:3
 path	assets/sprites/sprites.json	/^    { "name": "ship", "path": "sprites\/ship",  "frames": 1 },$/;"	s	object:1
 path	assets/sprites/sprites.json	/^    { "name": "ship_side", "path": "sprites\/ship_left",  "frames": 1 },$/;"	s	object:2
 path	assets/sprites/sprites.json	/^    {"name": "", "path": "sprites\/null", "frames": 1},$/;"	s	object:0

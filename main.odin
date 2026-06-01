@@ -24,6 +24,13 @@ main :: proc() {
 	state.world = rat.create_world(GAME_WIDTH, GAME_HEIGHT) // grid sized to the world
 	state.game = create_game(&state.world) // registers game component sets on the world
 
+	camera := raylib.Camera2D {
+		offset   = {GAME_WIDTH / 2, GAME_HEIGHT / 2},
+		target   = {GAME_WIDTH / 2, GAME_HEIGHT / 2},
+		rotation = 0,
+		zoom     = 1,
+	}
+
 	// let collision handlers reach game-wide state via world.user_data
 	state.world.user_data = &state
 	rat.on_collision(&state.world, LAYER_BULLET, LAYER_ENEMY, on_bullet_hits_enemy)
@@ -76,10 +83,13 @@ main :: proc() {
 		update_projectiles(&state)
 		update_aliens(&state)
 		rat.update_world(&state.world)
+		update_screenshake(&camera)
 
 		raylib.BeginTextureMode(target)
+		raylib.BeginMode2D(camera)
 		raylib.ClearBackground(raylib.BLACK)
 		rat.render_system(&state.world)
+		raylib.EndMode2D()
 		raylib.EndTextureMode()
 
 		raylib.BeginDrawing()
