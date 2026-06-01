@@ -2,5 +2,6 @@
     {"name": "", "path": "sprites/null", "frames": 1},
     { "name": "ship", "path": "sprites/ship",  "frames": 1 },
     { "name": "ship_side", "path": "sprites/ship_left",  "frames": 1 },
-    { "name": "bullet", "path": "sprites/bullet",  "frames": 2 }
+    { "name": "bullet", "path": "sprites/bullet",  "frames": 2 },
+	{ "name": "alien_green", "path": "sprites/green", "frames": 2 }
 ]

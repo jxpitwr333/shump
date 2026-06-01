@@ -62,6 +62,8 @@ main :: proc() {
 		),
 		can_shoot = true,
 	}
+
+	create_alien(&state, {GAME_WIDTH / 2, GAME_HEIGHT / 3}, .GREEN)
 	// end creation
 
 	// window scaling
@@ -72,6 +74,7 @@ main :: proc() {
 
 		update_ship(&state, &ship)
 		update_projectiles(&state)
+		update_aliens(&state)
 		rat.update_world(&state.world)
 
 		raylib.BeginTextureMode(target)

@@ -14,10 +14,14 @@ Game :: struct {
 	// Registered with the world, so it's freed by delete_world and entities are
 	// auto-removed from it on destroy. We just hold the handle.
 	projectiles: ^rat.SparseSet(Projectile),
+	aliens : ^rat.SparseSet(Alien),
 }
 
 create_game :: proc(world: ^rat.World) -> Game {
-	return Game{projectiles = rat.register_component(world, Projectile)}
+	return Game{
+		projectiles = rat.register_component(world, Projectile),
+		aliens = rat.register_component(world, Alien),
+	}
 }
 
 delete_game :: proc(game: ^Game) {
