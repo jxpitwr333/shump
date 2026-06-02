@@ -2,22 +2,23 @@ package rat
 import "vendor:raylib"
 
 World :: struct {
-	entity_manager:  EntityManager,
-	transforms:      SparseSet(transform_t),
-	appearances:     SparseSet(Appearance),
-	colliders_aabb:  SparseSet(Box),
-	colliders_ellipse: SparseSet(Ellipse),
-	sprite_lib:      SpriteLibrary,
-	grid:            SpatialGrid,
-	primitives_rect: SparseSet(rectangle_t),
-	primitives_circ: SparseSet(Circle),
-	sprite_data:     SparseSet(SpriteData),
-	timers:          [dynamic]Timer,
-	particles:       [dynamic]Particle,
-	destroy_queue:   [dynamic]Id, // entities queued via queue_destroy, flushed in update_world
-	components:      map[typeid]ComponentStore, // user component sets registered via register_component
+	entity_manager:     EntityManager,
+	transforms:         SparseSet(transform_t),
+	appearances:        SparseSet(Appearance),
+	colliders_aabb:     SparseSet(Box),
+	colliders_ellipse:  SparseSet(Ellipse),
+	sprite_lib:         SpriteLibrary,
+	grid:               SpatialGrid,
+	primitives_rect:    SparseSet(rectangle_t),
+	primitives_circ:    SparseSet(Circle),
+	sprite_data:        SparseSet(SpriteData),
+	timers:             [dynamic]Timer,
+	particles:          [dynamic]Particle,
+	destroy_queue:      [dynamic]Id, // entities queued via queue_destroy, flushed in update_world
+	components:         map[typeid]ComponentStore, // user component sets registered via register_component
 	collision_handlers: map[[2]u32]CollisionHandler, // {self_layer, other_layer} -> handler
-	user_data:       rawptr, // opaque game-side pointer (e.g. ^State) for collision handlers
+	user_data:          rawptr, // opaque game-side pointer (e.g. ^State) for collision handlers
+	hitflash_shader:    raylib.Shader,
 }
 
 // world_width/world_height are the game's world dimensions; the broadphase grid
@@ -170,4 +171,5 @@ delete_world :: proc(world: ^World) {
 	}
 	delete(world.components)
 	delete(world.collision_handlers)
+	raylib.UnloadShader(world.hitflash_shader)
 }

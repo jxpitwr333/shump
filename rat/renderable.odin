@@ -12,11 +12,12 @@ Alignment :: enum {
 }
 
 Appearance :: struct {
-	tint:   raylib.Color,
-	offset: [2]f32,
-	hflip:  i32, // (-1, 1)
-	vflip:  i32, // (-1, 1)
-	align:  Alignment,
+	tint:       raylib.Color,
+	offset:     [2]f32,
+	hflip:      i32, // (-1, 1)
+	vflip:      i32, // (-1, 1)
+	align:      Alignment,
+	solid_tint: bool, // this controls the rlgl solid color tint (a bit of a hack, but i don't want to set up shaders)
 }
 
 SpriteData :: struct {

@@ -2,7 +2,7 @@ package rat
 
 import "core:fmt"
 import "vendor:raylib"
-
+import rlgl "vendor:raylib/rlgl"
 Sprite :: struct {
 	frames:       []raylib.Texture2D,
 	total_frames: i32,
@@ -121,6 +121,10 @@ render_sprites :: proc(world: ^World) {
 			origin = {f32(i32(scaled.x * 0.5)), f32(i32(scaled.y * 0.5))}
 		}
 
+		if appearance.solid_tint {
+			raylib.BeginShaderMode(world.hitflash_shader)
+		}
+
 		raylib.DrawTexturePro(
 			frame,
 			raylib.Rectangle{0, 0, dims.x * f32(appearance.hflip), dims.y * f32(appearance.vflip)},
@@ -129,6 +133,9 @@ render_sprites :: proc(world: ^World) {
 			transform.rotation,
 			appearance.tint,
 		)
+
+		//if appearance.solid_tint do
+		raylib.EndShaderMode()
 
 		sprite_data.frame_counter += sprite_data.image_speed
 		//update animation

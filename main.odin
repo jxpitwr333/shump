@@ -40,6 +40,9 @@ main :: proc() {
 	raylib.InitWindow(i32(WINDOW_WIDTH), i32(WINDOW_HEIGHT), "Hi!")
 	defer raylib.CloseWindow()
 
+	// gl context
+	state.world.hitflash_shader = raylib.LoadShader(nil, "assets/shaders/hitflash.fs")
+
 	// declared after CloseWindow's defer so it runs BEFORE it (LIFO) — the GL
 	// context must still be alive to unload sprite textures.
 	defer delete_game(&state.game)
