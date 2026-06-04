@@ -1,5 +1,6 @@
 package shump
 
+import "core:time"
 import "rat"
 
 // Example collision handler, registered in main for (LAYER_BULLET, LAYER_ENEMY).
@@ -20,6 +21,8 @@ on_bullet_hits_enemy :: proc(world: ^rat.World, self, other: rat.Id) {
 
 	alien_appearance.solid_tint = true
 
+	time.sleep(2 * time.Millisecond)
+
 	rat.add_timer(
 		&world.timers,
 		rat.Timer{counter = 0, entity = other, frame_target = 3, on_complete = reset_hitflash},
@@ -27,6 +30,7 @@ on_bullet_hits_enemy :: proc(world: ^rat.World, self, other: rat.Id) {
 
 	if alien.hp <= 0 {
 		if t, ok := rat.try_fetch(world, other, rat.transform_t); ok {
+			add_screenshake(4)
 			rat.create_radial_particle_explosion(
 				&world.particles,
 				rat.ParticleDto {
