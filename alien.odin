@@ -23,7 +23,7 @@ create_alien :: proc(state: ^State, position: [2]f32, type: AlienType) {
 	switch (type) {
 	case .GREEN:
 		hp = 3.0
-		speed = 2.0
+		speed = 0.25
 		alien_spr = "alien_green"
 	}
 
@@ -76,7 +76,7 @@ update_aliens :: proc(state: ^State) {
 		alien := rat.must(aliens, eid)
 		transform := rat.fetch(&state.world, eid, rat.transform_t)
 
-		//transform.position.y += alien.speed
+		transform.position.y += alien.speed
 		transform.rotation = alien_rotation
 	}
 }

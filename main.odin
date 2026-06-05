@@ -24,6 +24,10 @@ main :: proc() {
 	state.world = rat.create_world(GAME_WIDTH, GAME_HEIGHT) // grid sized to the world
 	state.game = create_game(&state.world) // registers game component sets on the world
 
+	spawner: Spawner = {
+		counter = 0,
+	}
+
 	camera := raylib.Camera2D {
 		offset   = {GAME_WIDTH / 2, GAME_HEIGHT / 2},
 		target   = {GAME_WIDTH / 2, GAME_HEIGHT / 2},
@@ -84,6 +88,7 @@ main :: proc() {
 
 		update_ship(&state, &ship)
 		update_projectiles(&state)
+		update_spawner(&spawner, &state)
 		update_aliens(&state)
 		rat.update_world(&state.world)
 		update_screenshake(&camera)
