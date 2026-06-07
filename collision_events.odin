@@ -36,7 +36,7 @@ on_bullet_hits_enemy :: proc(world: ^rat.World, self, other: rat.Id) {
 				rat.ParticleDto {
 					pos = t.position + [2]f32{rat.random_range(-2, 2), rat.random_range(-2, 2)},
 					angle = 0,
-					color = get_alien_color(alien.type),
+					color = alien.color,
 					lifetime = 12,
 					scale = {2.5, 2.5},
 					shape = .CIRCLE,

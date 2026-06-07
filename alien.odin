@@ -13,18 +13,21 @@ Alien :: struct {
 	hp:    f32,
 	id:    rat.Id,
 	speed: f32,
+	color: raylib.Color,
 }
 
 create_alien :: proc(state: ^State, position: [2]f32, type: AlienType) {
-	hp: f32 = 0.0
-	alien_spr: string = ""
-	speed: f32 = 0.0
+	hp: f32
+	alien_spr: string
+	speed: f32
+	color: raylib.Color
 
 	switch (type) {
 	case .GREEN:
 		hp = 3.0
 		speed = 0.25
 		alien_spr = "alien_green"
+		color = raylib.GREEN
 	}
 
 	id := rat.create_object(
@@ -49,18 +52,10 @@ create_alien :: proc(state: ^State, position: [2]f32, type: AlienType) {
 		hp    = hp,
 		id    = id,
 		speed = speed,
+		color = color,
 	}
 
 	rat.add(state.game.aliens, id, alien)
-}
-
-get_alien_color :: proc(type: AlienType) -> raylib.Color {
-	switch (type) {
-	case .GREEN:
-		return raylib.GREEN
-	case:
-		return raylib.WHITE
-	}
 }
 
 alien_rotation: f32 = 0.0
@@ -76,6 +71,21 @@ update_aliens :: proc(state: ^State) {
 		alien := rat.must(aliens, eid)
 		transform := rat.fetch(&state.world, eid, rat.transform_t)
 
+		rat.create_particle_deg(
+			&state.world.particles,
+			rat.ParticleDto {
+				angle = 90,
+				color = alien.color,
+				lifetime = 10,
+				pos = transform.position +
+				[2]f32{rat.random_range(-2, 2), rat.random_range(-2, 2)},
+				scale = [2]f32{2, 2},
+				shrink = true,
+				shrink_factor = 0.1,
+				speed = -1,
+				shape = .CIRCLE,
+			},
+		)
 		transform.position.y += alien.speed
 		transform.rotation = alien_rotation
 	}
