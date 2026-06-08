@@ -9,6 +9,10 @@ Formation :: enum i32 {
 	FOUR_WALL,
 }
 
+AlienMovement :: enum {
+	STRAIGHT_DOWN,
+}
+
 Spawner :: struct {
 	counter: i32,
 }
@@ -24,8 +28,7 @@ update_spawner :: proc(spawner: ^Spawner, state: ^State) {
 
 	if spawner.counter >= seconds(3) {
 		spawner.counter = 0
-		//chosen_formation: Formation = rand.choice_enum(Formation)
-		chosen_formation := Formation.V_FORMATION
+		chosen_formation: Formation = rand.choice_enum(Formation)
 
 		#partial switch chosen_formation {
 		case .THREE_WALL:
